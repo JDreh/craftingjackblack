@@ -4,6 +4,8 @@
 \usepackage{times}
 \usepackage{helvet}
 \usepackage{courier}
+\usepackage{graphicx}
+\usepackage{hyperref}
 \frenchspacing
 \setlength{\pdfpagewidth}{8.5in}
 \setlength{\pdfpageheight}{11in}
@@ -20,28 +22,66 @@ Drexel University
 
  \section*{Group Members}
  \begin{itemize}
-	 \item Jake Dreher (jjd358@drexel.edu, 14423695)
-	 \item Samuel Bersch ()%TODO - Fill in
-	 \item Michael Le ()%TODO - Fill in
+    \item Jake Dreher (jjd358@drexel.edu, 14423695)
+    \item Michael Le (ml3653@drexel.edu, 14420371)
+    \item Samuel Bersch (sb4339@drexel.edu, 14420778)
  \end{itemize}
 
  \section*{Project Statement}
- The goal of this project is to analyze various Reinforcement Learning algorithms through the lens of Blackjack. This project aims to determine what is the best algorithm to use for a machine to learn how to play Blackjack. We will be using (INSERT ALGOS HERE) and analyzing their performance during training, comparing various metrics over the epochs. This project will use the Gymnasium library for the Blackjack environment.
+ The goal of this project is to analyze various Reinforcement Learning algorithms through the lens of Blackjack. This project aims to determine what the best algorithm to use for a machine to learn how to play Blackjack. We will be using standard Q-Learning, Double Q-Learning, Deep Q-Learning, SARSA, and Temporal Difference and analyzing their performance during training, comparing various metrics over the epochs. This project will use the Gymnasium library for the Blackjack environment.
+
+ \section*{General Environment}
+ In Blackjack, there are important states to consider of which are: the player's sum, the dealer's current card, and the usable ace. From the actions, the agent can choose to either hit to draw another card or stick to stop drawing. The reward can be described as getting closer to 21 and win if an agent’s total sum is 21 for their total sum and if no other agents’ sums are 21, a tie if multiple agents land on 21, or lose if a player is over 21 for their total sum or if an agent's sum is larger, but not greater than 21 against other agents.
 
  \section*{Project Plan}
- Explain what algos we are going to use, how we are going to implement them, and what metrics we are going to use to compare them.
+ We will implement each of the RL algorithms described in the Project Statement to work within the Gymnasium api. We will gather the following data during training each agent:
+ \begin{enumerate}
+     \item Training epoch versus performance over 100 games
+     \item Policy over the state space per epoch
+     \item Average return versus epoch
+ \end{enumerate}
+
+ \begin{figure}[ht!]
+     \centering
+     \includegraphics[width=0.7\linewidth]{blackjackpolicy.png}
+     \caption{Image taken from the CS-486 slides showing graphs for the policy of the agent over the state space}
+     \label{fig:policy}
+ \end{figure}
+
+ Figure \ref{fig:policy} shows the type of data we'd be collecting over the epochs for each agent. In addition to that type of data, we'd be evaluating the agents against random matches to collect a raw performance metric to show general improvement over time.
 
  \section*{Novelty}
- The novelty of this project is that we are going to be using a variety of different algorithms to analyze their performance in a single environment.
+ Only a handful of papers have attempted to look at this problem through various other environments, and evaluating the performance of algorithms generally has become a widely researched field nowadays. There has been one paper looking specifically at Blackjack already; however, our project aims to look at a wider variety of algorithms. By making this comparison, we hope to be able to gain insight into what different reinforcement learning algorithms bring in terms of advantages and disadvantages.
+
+ A similar project was done at Stanford University, approaching the problem in a similar way; however, they were examining the difference between model-based and model-free approaches. The difference with our project is that we plan to look at the difference between (more) standard RL algorithms, as well as a couple more advanced algorithms. We share one algorithm with this paper (standard Q Learning) which we will use results from the paper to compare with as somewhat of a baseline.
 
  \section*{Evaluation Approach}
- Fill in once we've decided on the algos and metrics.
+ For this project, we will have to evaluate each of our multiple agents against each other. This will be done by firstly evaluating pure performance in a number of random games throughout training and at the end. Ideally, our agents should each approach a similar optimal policy so performance should line up to be roughly equivalent at some point. Secondly, we will evaluate how quickly each algorithm approaches their optimal policy. This will be done by looking at how many epochs occur before there isn't a significant performance increase during testing/evaluation.
 
  \section*{Milestones}
- Need to fill in the milestones once we have a better idea of the project. We will be using the following milestones:
+ We will be using the following milestones:
 
- \section*{References}
- Need some citations.
+ \begin{enumerate}
+     \item Build Agent Structure
+     \item Construct Agents
+     \begin{enumerate}
+         \item Standard Q-Learning
+         \item Double Q-Learning
+         \item Deep Q-Learning
+         \item SARSA
+         \item Temporal Difference
+     \end{enumerate}
+     \item Run Iterations
+     \item Compare and Create Results
+ \end{enumerate}
 
+\section*{References}
+The links below show what papers we referenced.
+\begin{enumerate}
+    \item \href{https://web.stanford.edu/class/aa228/reports/2020/final117.pdf}{Beating Blackjack - A Reinforcement Learning Approach}
+    \item \href{https://medium.com/mitb-for-all/reinforcement-learning-optimal-blackjack-strategies-982a5a176d2d}{Reinforcement Learning: Optimal Blackjack Strategies}
+    \item \href{https://proceedings.mlr.press/v119/jordan20a/jordan20a.pdf}{Evaluating the Performance of RL Algorithms}
+\end{enumerate}
 
 \end{document}
+
