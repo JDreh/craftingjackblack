@@ -1,0 +1,13 @@
+[project]
+name = "jackblack"
+version = "0.1.0"
+description = "Finding the best blackjack agent"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "gymnasium>=1.1.1",
+    "matplotlib>=3.10.3",
+    "pyqt6>=6.9.0",
+    "seaborn>=0.13.2",
+    "tqdm>=4.67.1",
+]
