@@ -6,7 +6,7 @@ from collections import defaultdict
 import numpy as np
 import seaborn as sns
 
-from agent import BlackjackAgent
+from qlearningagent import QLearningBlackJackAgent
 
 def main():
     env = gym.make("Blackjack-v1", sab=True)
@@ -22,7 +22,7 @@ def main():
     epsilon_decay = start_epsilon / (n_episodes / 2)
     final_epsilon = 0.1
 
-    agent = BlackjackAgent(
+    agent = QLearningBlackJackAgent(
         env=env,
         learning_rate=learning_rate,
         initial_epsilon=start_epsilon,

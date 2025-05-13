@@ -1,7 +1,8 @@
+from abc import ABC, abstractmethod
 from collections import defaultdict
 import numpy as np
 
-class BlackjackAgent:
+class BlackJackAgent(ABC):
     def __init__(
         self,
         env,
@@ -32,19 +33,12 @@ class BlackjackAgent:
 
         self.training_error = []
 
+    @abstractmethod
     def get_action(self, env, obs: tuple[int, int, bool]) -> int:
-        """
-        Returns the best action with probability (1 - epsilon)
-        otherwise a random action with probability epsilon to ensure exploration.
-        """
-        # with probability epsilon return a random action to explore the environment
-        if np.random.random() < self.epsilon:
-            return env.action_space.sample()
+        """Gets an action based on the environment and observation."""
+        pass
 
-        # with probability (1 - epsilon) act greedily (exploit)
-        else:
-            return int(np.argmax(self.q_values[obs]))
-
+    @abstractmethod
     def update(
         self,
         obs: tuple[int, int, bool],
@@ -54,15 +48,7 @@ class BlackjackAgent:
         next_obs: tuple[int, int, bool],
     ):
         """Updates the Q-value of an action."""
-        future_q_value = (not terminated) * np.max(self.q_values[next_obs])
-        temporal_difference = (
-            reward + self.discount_factor * future_q_value - self.q_values[obs][action]
-        )
-
-        self.q_values[obs][action] = (
-            self.q_values[obs][action] + self.lr * temporal_difference
-        )
-        self.training_error.append(temporal_difference)
+        pass
 
     def decay_epsilon(self):
         self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
