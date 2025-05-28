@@ -18,7 +18,6 @@ class QNetwork(nn.Module):
 
 class DeepQLearningBlackJackAgent(BlackJackAgent):
     def __init__(self, state_space_dim, action_space_dim, lr=1e-3, gamma=0.99, epsilon=0.1, device=None):
-        # Do not call super().__init__() since BlackJackAgent expects Q-learning args
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.q_network = QNetwork(state_space_dim, action_space_dim).to(self.device)
         self.target_network = QNetwork(state_space_dim, action_space_dim).to(self.device)
@@ -80,7 +79,6 @@ class DeepQLearningBlackJackAgent(BlackJackAgent):
 
     @property
     def q_values(self):
-        # Return a dict-like object that computes Q-values on demand for plotting
         class QValueDict:
             def __init__(self, agent):
                 self.agent = agent

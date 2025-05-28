@@ -7,6 +7,8 @@ import numpy as np
 import seaborn as sns
 
 from qlearningagent import QLearningBlackJackAgent
+from deepqlearningagent import DeepQLearningBlackJackAgent
+from ppoagent import PPOBlackJackAgent
 
 def main():
     env = gym.make("Blackjack-v1", sab=True)
@@ -17,23 +19,51 @@ def main():
     print(obs)
 
     learning_rate = 0.01
-    n_episodes = 100_000
+    n_episodes = 10000
     start_epsilon = 1.0
     epsilon_decay = start_epsilon / (n_episodes / 2)
     final_epsilon = 0.1
 
-    agent = QLearningBlackJackAgent(
-        env=env,
-        learning_rate=learning_rate,
-        initial_epsilon=start_epsilon,
-        epsilon_decay=epsilon_decay,
-        final_epsilon=final_epsilon,
-    )
+    use_deep_q = False
+    use_ppo = True
+
+    if use_ppo:
+        state_space_dim = 3
+        action_space_dim = env.action_space.n
+        learning_rate = 0.0003  # Lower learning rate for PPO
+        n_episodes = 100000  # Increase episodes for PPO
+        agent = PPOBlackJackAgent(
+            state_space_dim=state_space_dim,
+            action_space_dim=action_space_dim,
+            lr=learning_rate,
+            gamma=0.99,
+            batch_size=8
+        )
+    elif use_deep_q:
+        state_space_dim = 3
+        action_space_dim = env.action_space.n
+        agent = DeepQLearningBlackJackAgent(
+            state_space_dim=state_space_dim,
+            action_space_dim=action_space_dim,
+            lr=learning_rate,
+            gamma=0.99,
+            epsilon=start_epsilon
+        )
+    else:
+        agent = QLearningBlackJackAgent(
+            env=env,
+            learning_rate=learning_rate,
+            initial_epsilon=start_epsilon,
+            epsilon_decay=epsilon_decay,
+            final_epsilon=final_epsilon,
+        )
 
     env = gym.wrappers.RecordEpisodeStatistics(env)
+    episode_rewards = []
     for episode in tqdm(range(n_episodes)):
         obs, info = env.reset()
         done = False
+        total_reward = 0
 
         # play one episode
         while not done:
@@ -43,11 +73,12 @@ def main():
             # update the agent
             agent.update(obs, action, reward, terminated, next_obs)
 
-            # update if the environment is done and the current obs
             done = terminated or truncated
             obs = next_obs
+            total_reward += reward
 
         agent.decay_epsilon()
+        episode_rewards.append(total_reward)
 
     rolling_length = 500
     fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
@@ -55,7 +86,7 @@ def main():
     # compute and assign a rolling average of the data to provide a smoother graph
     reward_moving_average = (
         np.convolve(
-            np.array(env.return_queue).flatten(), np.ones(rolling_length), mode="valid"
+            np.array(episode_rewards), np.ones(rolling_length), mode="valid"
         )
         / rolling_length
     )
