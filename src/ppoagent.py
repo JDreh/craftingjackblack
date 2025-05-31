@@ -20,18 +20,31 @@ class PolicyNetwork(nn.Module):
         return action_logits, state_value
 
 class PPOBlackJackAgent(BlackJackAgent):
-    def __init__(self, state_space_dim, action_space_dim, lr=3e-4, gamma=0.99, clip_epsilon=0.2, update_epochs=4, batch_size=32, device=None):
+    def __init__(
+        self,
+        env,
+        learning_rate: float,
+        initial_epsilon: float, # For exploration only, not PPO's clip
+        epsilon_decay: float,
+        final_epsilon: float,
+        discount_factor: float = 0.99,
+        device=None,
+        clip_epsilon=0.2,
+        update_epochs=4,
+        batch_size=32,
+    ):
+        super().__init__(env, learning_rate, initial_epsilon, epsilon_decay, final_epsilon, discount_factor)
+        state_space_dim = len(env.observation_space)
+        action_space_dim = env.action_space.n
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.policy = PolicyNetwork(state_space_dim, action_space_dim).to(self.device)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
-        self.gamma = gamma
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
         self.clip_epsilon = clip_epsilon
         self.update_epochs = update_epochs
         self.batch_size = batch_size
         self.training_error = []
         self.memory = []
         self.action_space_dim = action_space_dim
-        self.epsilon = 0.1  # For exploration only, not PPO's clip
 
     def obs_to_tensor(self, obs):
         return torch.tensor([obs[0], obs[1], int(obs[2])], dtype=torch.float32, device=self.device)
@@ -79,7 +92,7 @@ class PPOBlackJackAgent(BlackJackAgent):
         returns = []
         G = 0
         for r, d in zip(reversed(reward_list), reversed(done_list)):
-            G = r + self.gamma * G * (1 - d)
+            G = r + self.discount_factor * G * (1 - d)
             returns.insert(0, G)
         returns = torch.tensor(returns, dtype=torch.float32, device=self.device)
         advantages = returns - values
@@ -133,3 +146,7 @@ class PPOBlackJackAgent(BlackJackAgent):
                             obs = (player_sum, dealer_card, usable_ace)
                             yield obs, self[obs]
         return QValueDict(self)
+
+    @q_values.setter
+    def q_values(self, _):
+        pass

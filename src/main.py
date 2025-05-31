@@ -1,3 +1,5 @@
+from enum import Enum
+import sys
 import gymnasium as gym
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -9,6 +11,13 @@ import seaborn as sns
 from qlearningagent import QLearningBlackJackAgent
 from deepqlearningagent import DeepQLearningBlackJackAgent
 from ppoagent import PPOBlackJackAgent
+from doubleqlearningagent import DoubleQLearningBlackJackAgent
+
+class Model(Enum):
+    PPO = "ppo"
+    DQN = "dqn"
+    SQL = "sql"
+    DQL = "dql"
 
 def main():
     env = gym.make("Blackjack-v1", sab=True)
@@ -24,40 +33,48 @@ def main():
     epsilon_decay = start_epsilon / (n_episodes / 2)
     final_epsilon = 0.1
 
-    use_deep_q = False
-    use_ppo = True
+    model_used = Model.PPO if len(sys.argv) < 2 else Model(sys.argv[1])
 
-    if use_ppo:
-        state_space_dim = 3
-        action_space_dim = env.action_space.n
-        learning_rate = 0.0003  # Lower learning rate for PPO
-        n_episodes = 100000  # Increase episodes for PPO
-        agent = PPOBlackJackAgent(
-            state_space_dim=state_space_dim,
-            action_space_dim=action_space_dim,
-            lr=learning_rate,
-            gamma=0.99,
-            batch_size=8
-        )
-    elif use_deep_q:
-        state_space_dim = 3
-        action_space_dim = env.action_space.n
-        agent = DeepQLearningBlackJackAgent(
-            state_space_dim=state_space_dim,
-            action_space_dim=action_space_dim,
-            lr=learning_rate,
-            gamma=0.99,
-            epsilon=start_epsilon
-        )
-    else:
-        agent = QLearningBlackJackAgent(
-            env=env,
-            learning_rate=learning_rate,
-            initial_epsilon=start_epsilon,
-            epsilon_decay=epsilon_decay,
-            final_epsilon=final_epsilon,
-        )
+    match model_used:
+        case Model.PPO:
+            learning_rate = 0.0003  # Lower learning rate for PPO
+            n_episodes = 100000  # Increase episodes for PPO
+            agent = PPOBlackJackAgent(
+                env=env,
+                learning_rate=learning_rate,
+                discount_factor=0.99,
+                initial_epsilon=start_epsilon,
+                epsilon_decay=epsilon_decay,
+                final_epsilon=final_epsilon,
+                batch_size=8
+            )
+        case Model.DQN:
+            agent = DeepQLearningBlackJackAgent(
+                env=env,
+                learning_rate=learning_rate,
+                discount_factor=0.99,
+                initial_epsilon=start_epsilon,
+                epsilon_decay=epsilon_decay,
+                final_epsilon=final_epsilon
+            )
+        case Model.DQL:
+                agent = DoubleQLearningBlackJackAgent(
+                env=env,
+                learning_rate=learning_rate,
+                initial_epsilon=start_epsilon,
+                epsilon_decay=epsilon_decay,
+                final_epsilon=final_epsilon,
+            )
+        case Model.SQL:
+                agent = QLearningBlackJackAgent(
+                env=env,
+                learning_rate=learning_rate,
+                initial_epsilon=start_epsilon,
+                epsilon_decay=epsilon_decay,
+                final_epsilon=final_epsilon,
+            )
 
+    print(f"training with agent {model_used.value}")
     env = gym.wrappers.RecordEpisodeStatistics(env)
     episode_rewards = []
     for episode in tqdm(range(n_episodes)):
@@ -113,6 +130,8 @@ def main():
     plt.show()
 
     env.close()
+
+
 
 def create_grids(agent, usable_ace=False):
     """Create value and policy grid given an agent."""

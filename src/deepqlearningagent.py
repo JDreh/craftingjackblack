@@ -1,3 +1,4 @@
+from functools import reduce
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,15 +18,24 @@ class QNetwork(nn.Module):
         return self.fc3(x)
 
 class DeepQLearningBlackJackAgent(BlackJackAgent):
-    def __init__(self, state_space_dim, action_space_dim, lr=1e-3, gamma=0.99, epsilon=0.1, device=None):
+    def __init__(
+        self,
+        env,
+        learning_rate: float,
+        initial_epsilon: float,
+        epsilon_decay: float,
+        final_epsilon: float,
+        discount_factor: float = 0.95,
+        device=None
+    ):
+        super().__init__(env, learning_rate, initial_epsilon, epsilon_decay, final_epsilon, discount_factor)
+        state_space_dim = len(env.observation_space)
+        action_space_dim = env.action_space.n
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.q_network = QNetwork(state_space_dim, action_space_dim).to(self.device)
         self.target_network = QNetwork(state_space_dim, action_space_dim).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
-        self.discount_factor = gamma
-        self.epsilon = epsilon
-        self.training_error = []
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)
         self.memory = []
         self.batch_size = 32
         self.update_target_steps = 1000
@@ -73,10 +83,6 @@ class DeepQLearningBlackJackAgent(BlackJackAgent):
         if self.learn_step_counter % self.update_target_steps == 0:
             self.target_network.load_state_dict(self.q_network.state_dict())
 
-    def decay_epsilon(self):
-        # Simple linear decay for epsilon
-        self.epsilon = max(0.1, self.epsilon * 0.995)
-
     @property
     def q_values(self):
         class QValueDict:
@@ -95,3 +101,7 @@ class DeepQLearningBlackJackAgent(BlackJackAgent):
                             obs = (player_sum, dealer_card, usable_ace)
                             yield obs, self[obs]
         return QValueDict(self)
+
+    @q_values.setter
+    def q_values(self, _):
+        pass
