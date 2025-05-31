@@ -12,12 +12,14 @@ from qlearningagent import QLearningBlackJackAgent
 from deepqlearningagent import DeepQLearningBlackJackAgent
 from ppoagent import PPOBlackJackAgent
 from doubleqlearningagent import DoubleQLearningBlackJackAgent
+from sarsaagent import SARSAAgent
 
 class Model(Enum):
     PPO = "ppo"
     DQN = "dqn"
     SQL = "sql"
     DQL = "dql"
+    SARSA = "sarsa"
 
 def main():
     env = gym.make("Blackjack-v1", sab=True)
@@ -73,6 +75,15 @@ def main():
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon,
             )
+        case Model.SARSA:
+            agent = SARSAAgent(
+                env=env,
+                learning_rate=learning_rate,
+                initial_epsilon=start_epsilon,
+                epsilon_decay=epsilon_decay,
+                final_epsilon=final_epsilon,
+                discount_factor=0.95,
+            )
 
     print(f"training with agent {model_used.value}")
     env = gym.wrappers.RecordEpisodeStatistics(env)
@@ -82,20 +93,44 @@ def main():
         done = False
         total_reward = 0
 
-        # play one episode
-        while not done:
+        # pick the first action from state before entering the loop
+        if isinstance(agent, SARSAAgent):
             action = agent.get_action(env, obs)
-            next_obs, reward, terminated, truncated, _ = env.step(action)
 
-            # update the agent
-            agent.update(obs, action, reward, terminated, next_obs)
+            while not done:
+                next_obs, reward, terminated, truncated, _ = env.step(action)
+                total_reward += reward
 
-            done = terminated or truncated
-            obs = next_obs
-            total_reward += reward
+                done = terminated or truncated
 
-        agent.decay_epsilon()
-        episode_rewards.append(total_reward)
+                # choose next_action from next_obs (even if it turns out to be terminal)
+                next_action = agent.get_action(env, next_obs) if not done else None
+
+                # update agent (pass next_action; if done, next_action=None)
+                agent.update(obs, action, reward, terminated, next_obs, next_action)
+
+                # move to next state‐action pair
+                obs = next_obs
+                action = next_action
+
+            agent.decay_epsilon()
+            episode_rewards.append(total_reward)
+        else:
+
+            # play one episode
+            while not done:
+                action = agent.get_action(env, obs)
+                next_obs, reward, terminated, truncated, _ = env.step(action)
+
+                # update the agent
+                agent.update(obs, action, reward, terminated, next_obs)
+
+                done = terminated or truncated
+                obs = next_obs
+                total_reward += reward
+
+            agent.decay_epsilon()
+            episode_rewards.append(total_reward)
 
     rolling_length = 500
     fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
