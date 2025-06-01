@@ -52,3 +52,6 @@ class BlackJackAgent(ABC):
 
     def decay_epsilon(self):
         self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
+
+    def get_name(self):
+        return type(self).__name__[:-14]

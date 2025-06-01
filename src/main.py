@@ -1,5 +1,5 @@
 from enum import Enum
-import sys
+import sys, os
 import gymnasium as gym
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -7,7 +7,9 @@ from matplotlib.patches import Patch
 from collections import defaultdict
 import numpy as np
 import seaborn as sns
+import pandas as pd
 
+from agent import BlackJackAgent
 from qlearningagent import QLearningBlackJackAgent
 from deepqlearningagent import DeepQLearningBlackJackAgent
 from ppoagent import PPOBlackJackAgent
@@ -23,146 +25,111 @@ class Model(Enum):
 
 def main():
     env = gym.make("Blackjack-v1", sab=True)
-    done = False
 
-    # info dictionary is useless
-    obs, _ = env.reset()
-    print(obs)
-
+    n_episodes = 1000000
     learning_rate = 0.01
-    n_episodes = 10000
     start_epsilon = 1.0
     epsilon_decay = start_epsilon / (n_episodes / 2)
     final_epsilon = 0.1
+    env = gym.wrappers.RecordEpisodeStatistics(env)
 
-    model_used = Model.PPO if len(sys.argv) < 2 else Model(sys.argv[1])
+    if len(sys.argv) >= 2:
+        model_used = Model(sys.argv[1])
+        match model_used:
+            case Model.PPO:
+                n_episodes = 100000  # Increase episodes for PPO
+                agent = PPOBlackJackAgent(
+                        env=env,
+                        learning_rate=0.0003,
+                        discount_factor=0.99,
+                        initial_epsilon=start_epsilon,
+                        epsilon_decay=epsilon_decay,
+                        final_epsilon=final_epsilon,
+                        batch_size=8
+                        )
+            case Model.DQN:
+                agent = DeepQLearningBlackJackAgent(
+                        env=env,
+                        learning_rate=learning_rate,
+                        discount_factor=0.99,
+                        initial_epsilon=start_epsilon,
+                        epsilon_decay=epsilon_decay,
+                        final_epsilon=final_epsilon
+                        )
+            case Model.DQL:
+                agent = DoubleQLearningBlackJackAgent(
+                        env=env,
+                        learning_rate=learning_rate,
+                        initial_epsilon=start_epsilon,
+                        epsilon_decay=epsilon_decay,
+                        final_epsilon=final_epsilon,
+                        )
+            case Model.SQL:
+                agent = QLearningBlackJackAgent(
+                        env=env,
+                        learning_rate=learning_rate,
+                        initial_epsilon=start_epsilon,
+                        epsilon_decay=epsilon_decay,
+                        final_epsilon=final_epsilon,
+                        )
+            case Model.SARSA:
+                agent = SARSAAgent(
+                        env=env,
+                        learning_rate=learning_rate,
+                        initial_epsilon=start_epsilon,
+                        epsilon_decay=epsilon_decay,
+                        final_epsilon=final_epsilon,
+                        discount_factor=0.95,
+                        )
 
-    match model_used:
-        case Model.PPO:
-            learning_rate = 0.0003  # Lower learning rate for PPO
-            n_episodes = 100000  # Increase episodes for PPO
-            agent = PPOBlackJackAgent(
+        print(f"training with agent {model_used.value}")
+        episode_rewards, episode_lengths = train_agent(agent, env, n_episodes)
+        create_outputs(episode_rewards, episode_lengths, env, agent)
+    else:
+        agents = [
+            PPOBlackJackAgent(
                 env=env,
-                learning_rate=learning_rate,
+                learning_rate=0.0003,
                 discount_factor=0.99,
                 initial_epsilon=start_epsilon,
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon,
                 batch_size=8
-            )
-        case Model.DQN:
-            agent = DeepQLearningBlackJackAgent(
+            ),
+            DeepQLearningBlackJackAgent(
                 env=env,
                 learning_rate=learning_rate,
                 discount_factor=0.99,
                 initial_epsilon=start_epsilon,
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon
-            )
-        case Model.DQL:
-                agent = DoubleQLearningBlackJackAgent(
+            ),
+            DoubleQLearningBlackJackAgent(
                 env=env,
                 learning_rate=learning_rate,
                 initial_epsilon=start_epsilon,
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon,
-            )
-        case Model.SQL:
-                agent = QLearningBlackJackAgent(
+            ),
+            QLearningBlackJackAgent(
                 env=env,
                 learning_rate=learning_rate,
                 initial_epsilon=start_epsilon,
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon,
-            )
-        case Model.SARSA:
-            agent = SARSAAgent(
+            ),
+            SARSAAgent(
                 env=env,
                 learning_rate=learning_rate,
                 initial_epsilon=start_epsilon,
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon,
                 discount_factor=0.95,
-            )
-
-    print(f"training with agent {model_used.value}")
-    env = gym.wrappers.RecordEpisodeStatistics(env)
-    episode_rewards = []
-    for episode in tqdm(range(n_episodes)):
-        obs, info = env.reset()
-        done = False
-        total_reward = 0
-
-        # pick the first action from state before entering the loop
-        if isinstance(agent, SARSAAgent):
-            action = agent.get_action(env, obs)
-
-            while not done:
-                next_obs, reward, terminated, truncated, _ = env.step(action)
-                total_reward += reward
-
-                done = terminated or truncated
-
-                # choose next_action from next_obs (even if it turns out to be terminal)
-                next_action = agent.get_action(env, next_obs) if not done else None
-
-                # update agent (pass next_action; if done, next_action=None)
-                agent.update(obs, action, reward, terminated, next_obs, next_action)
-
-                # move to next state‐action pair
-                obs = next_obs
-                action = next_action
-
-            agent.decay_epsilon()
-            episode_rewards.append(total_reward)
-        else:
-
-            # play one episode
-            while not done:
-                action = agent.get_action(env, obs)
-                next_obs, reward, terminated, truncated, _ = env.step(action)
-
-                # update the agent
-                agent.update(obs, action, reward, terminated, next_obs)
-
-                done = terminated or truncated
-                obs = next_obs
-                total_reward += reward
-
-            agent.decay_epsilon()
-            episode_rewards.append(total_reward)
-
-    rolling_length = 500
-    fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
-    axs[0].set_title("Episode rewards")
-    # compute and assign a rolling average of the data to provide a smoother graph
-    reward_moving_average = (
-        np.convolve(
-            np.array(episode_rewards), np.ones(rolling_length), mode="valid"
-        )
-        / rolling_length
-    )
-    axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
-    axs[1].set_title("Episode lengths")
-    length_moving_average = (
-        np.convolve(
-            np.array(env.length_queue).flatten(), np.ones(rolling_length), mode="same"
-        )
-        / rolling_length
-    )
-    axs[1].plot(range(len(length_moving_average)), length_moving_average)
-    axs[2].set_title("Training Error")
-    training_error_moving_average = (
-        np.convolve(np.array(agent.training_error), np.ones(rolling_length), mode="same")
-        / rolling_length
-    )
-    axs[2].plot(range(len(training_error_moving_average)), training_error_moving_average)
-    plt.tight_layout()
-    plt.show()
-    # state values & policy with usable ace (ace counts as 11)
-    value_grid, policy_grid = create_grids(agent, usable_ace=True)
-    fig1 = create_plots(value_grid, policy_grid, title="With usable ace")
-    plt.show()
+            ),
+        ]
+        for agent in agents:
+            episode_rewards, episode_lengths = train_agent(agent, env, n_episodes)
+            create_outputs(episode_rewards, episode_lengths, env, agent)
 
     env.close()
 
@@ -246,6 +213,111 @@ def create_plots(value_grid, policy_grid, title: str):
     return fig
 
 
+def train_agent(agent: BlackJackAgent, env, n_episodes: int):
+    episode_rewards = []
+    episode_lengths = []
+    for _ in tqdm(range(n_episodes)):
+        obs, _ = env.reset()
+        done = False
+        total_reward = 0
+
+        # pick the first action from state before entering the loop
+        if isinstance(agent, SARSAAgent):
+            action = agent.get_action(env, obs)
+            length = 0
+
+            while not done:
+                next_obs, reward, terminated, truncated, _ = env.step(action)
+                total_reward += reward
+
+                done = terminated or truncated
+
+                # choose next_action from next_obs (even if it turns out to be terminal)
+                next_action = agent.get_action(env, next_obs) if not done else None
+
+                # update agent (pass next_action; if done, next_action=None)
+                agent.update(obs, action, reward, terminated, next_obs, next_action)
+
+                # move to next state‐action pair
+                obs = next_obs
+                action = next_action
+                length += 1
+
+            agent.decay_epsilon()
+            episode_rewards.append(total_reward)
+            episode_lengths.append(length)
+        else:
+            length = 0
+
+            # play one episode
+            while not done:
+                action = agent.get_action(env, obs)
+                next_obs, reward, terminated, truncated, _ = env.step(action)
+
+                # update the agent
+                agent.update(obs, action, reward, terminated, next_obs)
+
+                done = terminated or truncated
+                obs = next_obs
+                total_reward += reward
+                length += 1
+
+            agent.decay_epsilon()
+            episode_rewards.append(total_reward)
+            episode_lengths.append(length)
+
+    return episode_rewards, episode_lengths
+
+
+def create_outputs(episode_rewards, episode_lengths, env, agent: BlackJackAgent):
+    os.makedirs(f"../output/{agent.get_name()}", exist_ok=True)
+    rolling_length = 500
+    fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
+    fig.canvas.manager.set_window_title(agent.get_name())
+    axs[0].set_title("Episode rewards")
+    # compute and assign a rolling average of the data to provide a smoother graph
+    reward_moving_average = (
+        np.convolve(
+            np.array(episode_rewards), np.ones(rolling_length), mode="valid"
+        )
+        / rolling_length
+    )
+    axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
+    axs[1].set_title("Episode lengths")
+    length_moving_average = (
+        np.convolve(
+            np.array(episode_lengths), np.ones(rolling_length), mode="same"
+        )
+        / rolling_length
+    )
+    axs[1].plot(range(len(length_moving_average)), length_moving_average)
+    axs[2].set_title("Training Error")
+    training_error_moving_average = (
+        np.convolve(np.array(agent.training_error), np.ones(rolling_length), mode="same")
+        / rolling_length
+    )
+    axs[2].plot(range(len(training_error_moving_average)), training_error_moving_average)
+    plt.tight_layout()
+    fig.savefig(f"../output/{agent.get_name()}/fig1.png")
+    plt.show()
+    # state values & policy with usable ace (ace counts as 11)
+    value_grid, policy_grid = create_grids(agent, usable_ace=True)
+    fig1 = create_plots(value_grid, policy_grid, title="With usable ace")
+    fig1.canvas.manager.set_window_title(agent.get_name())
+    fig1.savefig(f"../output/{agent.get_name()}/fig2.png")
+    plt.show()
+    # state values & policy with usable ace (ace counts as 11)
+    value_grid, policy_grid = create_grids(agent, usable_ace=False)
+    fig2 = create_plots(value_grid, policy_grid, title="Without usable ace")
+    fig2.canvas.manager.set_window_title(agent.get_name())
+    fig2.savefig(f"../output/{agent.get_name()}/fig3.png")
+    plt.show()
+    pd.DataFrame({ "Episode Reward": episode_rewards }).to_csv(f"../output/{agent.get_name()}/rewards.csv", index_label="Episode")
+    pd.DataFrame({ "Episode Reward": reward_moving_average }).to_csv(f"../output/{agent.get_name()}/rewards_avg.csv", index_label="Episode")
+    pd.DataFrame({ "Episode Lengths": episode_lengths }).to_csv(f"../output/{agent.get_name()}/lengths.csv", index_label="Episode")
+    pd.DataFrame({ "Episode Lengths": length_moving_average }).to_csv(f"../output/{agent.get_name()}/lengths_avg.csv", index_label="Episode")
+    pd.DataFrame({ "Training Error": agent.training_error }).to_csv(f"../output/{agent.get_name()}/errors.csv", index_label="Episode")
+    pd.DataFrame({ "Training Error": training_error_moving_average }).to_csv(f"../output/{agent.get_name()}/errors_avg.csv", index_label="Episode")
 
 
 if __name__ == "__main__":
