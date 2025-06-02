@@ -31,3 +31,7 @@ After running the program, there will be a directory called `output`. A director
 - lengths_avg.csv
 - rewards.csv
 - rewards_avg.csv
+
+## Commit History
+
+Files and work have been directly committed to the main branch.
