@@ -130,6 +130,11 @@ def main():
         for agent in agents:
             print(f"training with agent {agent.get_name()}")
             episode_rewards, episode_lengths = train_agent(agent, env, n_episodes)
+
+            # evaluate the agent
+            win_rate, win_draw_rate = evaluate_agent_win_rate(agent, env, n_games=10000, seed=123)
+            print(f"{agent.get_name()}: Win Rate = {win_rate:.3f}, Win+Draw Rate = {win_draw_rate:.3f}")
+
             create_outputs(episode_rewards, episode_lengths, env, agent)
 
     env.close()
@@ -319,6 +324,40 @@ def create_outputs(episode_rewards, episode_lengths, env, agent: BlackJackAgent)
     pd.DataFrame({ "Episode Lengths": length_moving_average }).to_csv(f"output/{agent.get_name()}/lengths_avg.csv", index_label="Episode")
     pd.DataFrame({ "Training Error": agent.training_error }).to_csv(f"output/{agent.get_name()}/errors.csv", index_label="Episode")
     pd.DataFrame({ "Training Error": training_error_moving_average }).to_csv(f"output/{agent.get_name()}/errors_avg.csv", index_label="Episode")
+
+
+def evaluate_agent_win_rate(agent: BlackJackAgent, env, n_games: int = 10000, seed: int = 42):
+    """Evaluate the agent on a fixed set of games and return the average win rate."""
+    # Set agent to evaluation mode (no exploration)
+    if hasattr(agent, 'epsilon'):
+        old_epsilon = agent.epsilon
+        agent.epsilon = 0.0
+    else:
+        old_epsilon = None
+    # Set random seed for reproducibility
+    env.reset(seed=seed)
+    np.random.seed(seed)
+    wins = 0
+    draws = 0
+    for _ in range(n_games):
+        obs, _ = env.reset()
+        done = False
+        total_reward = 0
+        while not done:
+            action = agent.get_action(env, obs)
+            obs, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
+            total_reward += reward
+        if total_reward == 1.0:
+            wins += 1
+        elif total_reward == 0.0:
+            draws += 1
+    # Restore epsilon
+    if old_epsilon is not None:
+        agent.epsilon = old_epsilon
+    win_rate = wins / n_games
+    win_draw_rate = (wins + 0.5 * draws) / n_games
+    return win_rate, win_draw_rate
 
 
 if __name__ == "__main__":
