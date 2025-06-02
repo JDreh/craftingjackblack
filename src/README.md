@@ -4,7 +4,7 @@
 
 This project uses [uv](https://github.com/astral-sh/uv) to run. To begin, go into the `src` directory.
 
-To train a specific agent, run `uv run main.py <agent_name>`, where the agent name is one of the following:
+To train specific agents, run `uv run main.py <agent1> [agent2]...`, where the agent name is one of the following:
 
 - sql: Single Q-Learning
 

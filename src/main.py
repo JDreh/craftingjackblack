@@ -34,57 +34,57 @@ def main():
     env = gym.wrappers.RecordEpisodeStatistics(env)
 
     if len(sys.argv) >= 2:
-        model_used = Model(sys.argv[1])
-        match model_used:
-            case Model.PPO:
-                n_episodes = 100000  # Increase episodes for PPO
-                agent = PPOBlackJackAgent(
-                        env=env,
-                        learning_rate=0.0003,
-                        discount_factor=0.99,
-                        initial_epsilon=start_epsilon,
-                        epsilon_decay=epsilon_decay,
-                        final_epsilon=final_epsilon,
-                        batch_size=8
-                        )
-            case Model.DQN:
-                agent = DeepQLearningBlackJackAgent(
-                        env=env,
-                        learning_rate=learning_rate,
-                        discount_factor=0.99,
-                        initial_epsilon=start_epsilon,
-                        epsilon_decay=epsilon_decay,
-                        final_epsilon=final_epsilon
-                        )
-            case Model.DQL:
-                agent = DoubleQLearningBlackJackAgent(
-                        env=env,
-                        learning_rate=learning_rate,
-                        initial_epsilon=start_epsilon,
-                        epsilon_decay=epsilon_decay,
-                        final_epsilon=final_epsilon,
-                        )
-            case Model.SQL:
-                agent = QLearningBlackJackAgent(
-                        env=env,
-                        learning_rate=learning_rate,
-                        initial_epsilon=start_epsilon,
-                        epsilon_decay=epsilon_decay,
-                        final_epsilon=final_epsilon,
-                        )
-            case Model.SARSA:
-                agent = SARSABlackJackAgent(
-                        env=env,
-                        learning_rate=learning_rate,
-                        initial_epsilon=start_epsilon,
-                        epsilon_decay=epsilon_decay,
-                        final_epsilon=final_epsilon,
-                        discount_factor=0.95,
-                        )
+        for i in range(1, len(sys.argv)):
+            model_used = Model(sys.argv[i])
+            match model_used:
+                case Model.PPO:
+                    agent = PPOBlackJackAgent(
+                            env=env,
+                            learning_rate=0.0003,
+                            discount_factor=0.99,
+                            initial_epsilon=start_epsilon,
+                            epsilon_decay=epsilon_decay,
+                            final_epsilon=final_epsilon,
+                            batch_size=8
+                            )
+                case Model.DQN:
+                    agent = DeepQLearningBlackJackAgent(
+                            env=env,
+                            learning_rate=learning_rate,
+                            discount_factor=0.99,
+                            initial_epsilon=start_epsilon,
+                            epsilon_decay=epsilon_decay,
+                            final_epsilon=final_epsilon
+                            )
+                case Model.DQL:
+                    agent = DoubleQLearningBlackJackAgent(
+                            env=env,
+                            learning_rate=learning_rate,
+                            initial_epsilon=start_epsilon,
+                            epsilon_decay=epsilon_decay,
+                            final_epsilon=final_epsilon,
+                            )
+                case Model.SQL:
+                    agent = QLearningBlackJackAgent(
+                            env=env,
+                            learning_rate=learning_rate,
+                            initial_epsilon=start_epsilon,
+                            epsilon_decay=epsilon_decay,
+                            final_epsilon=final_epsilon,
+                            )
+                case Model.SARSA:
+                    agent = SARSABlackJackAgent(
+                            env=env,
+                            learning_rate=learning_rate,
+                            initial_epsilon=start_epsilon,
+                            epsilon_decay=epsilon_decay,
+                            final_epsilon=final_epsilon,
+                            discount_factor=0.95,
+                            )
 
-        print(f"training with agent {model_used.value}")
-        episode_rewards, episode_lengths = train_agent(agent, env, n_episodes)
-        create_outputs(episode_rewards, episode_lengths, env, agent)
+            print(f"training with agent {model_used.value}")
+            episode_rewards, episode_lengths = train_agent(agent, env, n_episodes)
+            create_outputs(episode_rewards, episode_lengths, env, agent)
     else:
         agents = [
             PPOBlackJackAgent(
@@ -128,6 +128,7 @@ def main():
             ),
         ]
         for agent in agents:
+            print(f"training with agent {agent.get_name()}")
             episode_rewards, episode_lengths = train_agent(agent, env, n_episodes)
             create_outputs(episode_rewards, episode_lengths, env, agent)
 
