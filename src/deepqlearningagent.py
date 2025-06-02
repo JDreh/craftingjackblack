@@ -82,6 +82,7 @@ class DeepQLearningBlackJackAgent(BlackJackAgent):
         self.learn_step_counter += 1
         if self.learn_step_counter % self.update_target_steps == 0:
             self.target_network.load_state_dict(self.q_network.state_dict())
+        self.memory = []  # Clear memory after learning
 
     @property
     def q_values(self):
