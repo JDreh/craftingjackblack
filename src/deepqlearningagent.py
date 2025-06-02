@@ -58,10 +58,7 @@ class DeepQLearningBlackJackAgent(BlackJackAgent):
         self.memory.append((obs, action, reward, terminated, next_obs))
         if len(self.memory) < self.batch_size:
             return
-        # Sample random minibatch
-        indices = np.random.choice(len(self.memory), self.batch_size, replace=False)
-        batch = [self.memory[i] for i in indices]
-        obs_batch, action_batch, reward_batch, terminated_batch, next_obs_batch = zip(*batch)
+        obs_batch, action_batch, reward_batch, terminated_batch, next_obs_batch = zip(*self.memory)
         obs_batch = torch.stack([self.obs_to_tensor(o) for o in obs_batch])
         next_obs_batch = torch.stack([self.obs_to_tensor(o) for o in next_obs_batch])
         action_batch = torch.tensor(action_batch, dtype=torch.long, device=self.device)
