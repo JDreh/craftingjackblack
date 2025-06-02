@@ -4,7 +4,7 @@ from agent import BlackJackAgent
 import numpy as np
 
 
-class SARSAAgent(BlackJackAgent):
+class SARSABlackJackAgent(BlackJackAgent):
     def __init__(
         self,
         env,

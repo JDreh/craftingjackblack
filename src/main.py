@@ -14,7 +14,7 @@ from qlearningagent import QLearningBlackJackAgent
 from deepqlearningagent import DeepQLearningBlackJackAgent
 from ppoagent import PPOBlackJackAgent
 from doubleqlearningagent import DoubleQLearningBlackJackAgent
-from sarsaagent import SARSAAgent
+from sarsaagent import SARSABlackJackAgent
 
 class Model(Enum):
     PPO = "ppo"
@@ -73,7 +73,7 @@ def main():
                         final_epsilon=final_epsilon,
                         )
             case Model.SARSA:
-                agent = SARSAAgent(
+                agent = SARSABlackJackAgent(
                         env=env,
                         learning_rate=learning_rate,
                         initial_epsilon=start_epsilon,
@@ -118,7 +118,7 @@ def main():
                 epsilon_decay=epsilon_decay,
                 final_epsilon=final_epsilon,
             ),
-            SARSAAgent(
+            SARSABlackJackAgent(
                 env=env,
                 learning_rate=learning_rate,
                 initial_epsilon=start_epsilon,
@@ -222,7 +222,7 @@ def train_agent(agent: BlackJackAgent, env, n_episodes: int):
         total_reward = 0
 
         # pick the first action from state before entering the loop
-        if isinstance(agent, SARSAAgent):
+        if isinstance(agent, SARSABlackJackAgent):
             action = agent.get_action(env, obs)
             length = 0
 
