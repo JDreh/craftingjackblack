@@ -73,10 +73,6 @@ class PPOBlackJackAgent(BlackJackAgent):
         if len(self.memory) >= self.batch_size:
             self._learn()
             self.memory = []
-        # Always learn at the end of an episode if any transitions remain
-        elif terminated and len(self.memory) > 0:
-            self._learn()
-            self.memory = []
 
     def _learn(self):
         # Convert memory to tensors
