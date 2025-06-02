@@ -14,9 +14,7 @@ class SARSABlackJackAgent(BlackJackAgent):
         final_epsilon: float,
         discount_factor: float = 0.95,
     ):
-        """
-        On-policy SARSA: Q(s,a) ← Q(s,a) + α [r + γ·Q(s',a') – Q(s,a)]
-        """
+
         super().__init__(
             env=env,
             learning_rate=learning_rate,
@@ -27,11 +25,10 @@ class SARSABlackJackAgent(BlackJackAgent):
         )
 
     def get_action(self, env, obs: tuple[int, int, bool]) -> int:
-        """
-        Epsilon‐greedy: with probability ε pick random action; else pick argmax over Q[obs].
-        """
+        # with probability epsilon return a random action to explore the environment
         if np.random.rand() < self.epsilon:
             return env.action_space.sample()
+        # with probability (1 - epsilon) act greedily (exploit)
         return int(np.argmax(self.q_values[obs]))
 
     def update(
@@ -43,10 +40,7 @@ class SARSABlackJackAgent(BlackJackAgent):
         next_obs: tuple[int, int, bool],
         next_action: int,
     ):
-        """
-        Perform the SARSA update. If next state is terminal, target = reward. Otherwise:
-            target = reward + γ·Q(next_obs, next_action).
-        """
+
         current_q = self.q_values[obs][action]
         if terminated:
             target = reward
